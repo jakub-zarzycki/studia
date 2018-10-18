@@ -1,0 +1,1 @@
+ocamlc plik.mli plik.ml drugi_plik.ml -o test

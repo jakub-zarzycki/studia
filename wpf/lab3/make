@@ -1,0 +1,1 @@
+ocamlc arytmetyka.mli arytmetyka.ml -o arytmetyka
