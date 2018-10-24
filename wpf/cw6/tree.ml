@@ -6,20 +6,20 @@ let rec size t =
     | Node(left, _, right) -> size left + size right + 1
 ;;
 
-let rec hight t =
+let rec height t =
     match t with
     | Leaf -> 0
-    | Node(left, _, right) -> (max (hight left) (hight right)) + 1
+    | Node(left, _, right) -> (max (height left) (height right)) + 1
 ;;
 
-(*size and hight simultaniusly*)
-let rec size_and_hight t =
+(*size and height simultaniusly*)
+let rec size_and_height t =
     match t with 
     | Leaf -> (0, 0)
     | Node(left, _, right) -> 
-        let (left_size, left_hight) = size_and_hight left in
-        let (right_size, right_hight) = size_and_hight right in 
-            (left_size + right_size + 1, max left_hight right_hight + 1)
+        let (left_size, left_height) = size_and_height left in
+        let (right_size, right_height) = size_and_height right in 
+            (left_size + right_size + 1, max left_height right_height + 1)
 ;;
 
 (*check if tree is ultraleft*)
