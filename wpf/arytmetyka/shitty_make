@@ -1,1 +1,3 @@
 ocamlc arytmetyka.mli arytmetyka.ml -o arytmetyka
+rm *.cm*
+./arytmetyka
