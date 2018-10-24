@@ -1,7 +1,7 @@
 (*duża struktura, trzeba obliczyć wynik na końcu*)
 let rec pot1 x n =
   if n = 0 then 1
-  else x * (pot x (n / 2))
+  else x * (pot1 x (n / 2))
 ;;
 
 (*ogonowo*)
