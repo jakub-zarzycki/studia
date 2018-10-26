@@ -1,0 +1,16 @@
+### Starting build.
+# Target: drugi_plik.ml.depends, tags: { extension:ml, file:drugi_plik.ml, ocaml, ocamldep, quiet }
+ocamldep.opt -modules drugi_plik.ml > drugi_plik.ml.depends # cached
+# Target: plik.mli.depends, tags: { extension:mli, file:plik.mli, ocaml, ocamldep, quiet }
+ocamldep.opt -modules plik.mli > plik.mli.depends # cached
+# Target: plik.cmi, tags: { byte, compile, extension:mli, file:plik.mli, interf, ocaml, quiet }
+ocamlc.opt -c -o plik.cmi plik.mli # cached
+# Target: drugi_plik.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:drugi_plik.cmo, file:drugi_plik.ml, implem, ocaml, quiet }
+ocamlc.opt -c -o drugi_plik.cmo drugi_plik.ml # cached
+# Target: plik.ml.depends, tags: { extension:ml, file:plik.ml, ocaml, ocamldep, quiet }
+ocamldep.opt -modules plik.ml > plik.ml.depends # cached
+# Target: plik.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:plik.cmo, file:plik.ml, implem, ocaml, quiet }
+ocamlc.opt -c -o plik.cmo plik.ml
+# Target: drugi_plik.byte, tags: { byte, dont_link_with, extension:byte, file:drugi_plik.byte, link, ocaml, program, quiet }
+ocamlc.opt plik.cmo drugi_plik.cmo -o drugi_plik.byte
+# Compilation successful.

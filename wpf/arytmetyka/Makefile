@@ -1,17 +1,22 @@
-test: arytmetyka
-	./arytmetyka
-	make clean
+test: test.ml arytmetyka.cmx
+	ocamlopt -o test arytmetyka.cmx test.ml 
+	./test
+	#make clean
 
-arytmetyka: arytmetyka.cmo
+arytmetyka: arytmetyka.mli arytmetyka.ml
 	ocamlc -o $@ $^
 
-%.cmo: %.ml
-	ocamlc -c $<
+%.cmo: %.mli %.ml
+	ocamlc -c $^
+
+%.cmx: %.ml
+	ocamlopt -c $<
 
 %.cmi: %.mli
-	ocamlc -c $<
+	ocamlopt -c $<
+
 clean:
-	rm *.cmi *.cmo
+	rm *.cmi *.cmo *.cmx *.o
 
 depend:
 	ocamldep *.ml *.mli > .depend

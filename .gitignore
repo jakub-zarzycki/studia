@@ -1,0 +1,12 @@
+*.build
+*.cmi
+*.cmo
+*.cmx
+*.native
+*.o
+*.so
+wpf/arytmetyka/debug
+wpf/arytmetyka/arytmetyka
+wpf/arytmetyka/test
+wpf/arytmetyka/debug/test
+wpf/arytmetyka/debug/arytmetyka
