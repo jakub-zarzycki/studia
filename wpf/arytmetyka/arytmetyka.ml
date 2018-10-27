@@ -14,9 +14,7 @@ let is_nan (f : float) =
 
 (*sprawdź czy liczba jest w przedziale*)
 let wartosc_w_przedziale (w : wartosc) (f : float) =
-    match w with
-    | [] -> false
-    | (x, y)::[] -> f <= y && f >= x
+    match w with (x, y)::[] -> f <= y && f >= x
 ;;
 
 (*konstruktory*)
@@ -24,7 +22,9 @@ let wartosc_w_przedziale (w : wartosc) (f : float) =
 (*wartość z błędem*)
 let wartosc_dokladnosc (x : float) (p : float) = 
     let error = x *. p /. 100. in
-        [(x -. error, x +. error)]
+        let a, b =  min (x -. error) (x +. error), 
+                    max (x -. error) (x +. error) in
+            [(a,b)]
 ;;
 
 (*przedział wartości*)
@@ -51,7 +51,7 @@ let in_wartosc (w : wartosc) (f : float) =
 let min_wartosc (x : wartosc) =
     match x with
     | [] -> nan
-    | (a, b)::[] -> a
+    | (a, b)::[] -> min a b
     | (a1, b1)::(a2, b2)::[] -> min a1 a2
 ;;
 
@@ -59,14 +59,14 @@ let min_wartosc (x : wartosc) =
 let max_wartosc (x : wartosc) = 
     match x with
     | [] -> nan
-    | (a, b)::[] -> b
+    | (a, b)::[] -> max a b
     | (a1, b1)::(a2, b2)::[] -> max b1 b2
 ;;
 
 (*średnia wartosc*)
 let sr_wartosc w = 
     let lower = min_wartosc w and upper = max_wartosc w in 
-        if lower = lower && upper = upper then
+        if (lower = lower) && (upper = upper) then
             ((lower +. upper) /. 2.) else 
             nan
 ;;
@@ -86,7 +86,7 @@ let czysc (x : wartosc) =
 (*podział przedziału na część dodatnią i ujemną*)
 let split (x : wartosc) =
     match x with
-    | (0., 0.)::[] -> []
+    | [] -> []
     | (a, b)::[] ->
         if b <= 0. || a >= 0. then x
         else [(a, 0.)] @ [(0., b)]
@@ -98,6 +98,13 @@ let minus_przedzial (x : wartosc) =
     | [] -> []
     | (ax, bx)::[] -> (-. bx, -. ax)::[]
 ;;
+
+(*wartość przeciwna*)
+let minus_wartosc (x : wartosc) =
+    match x with
+    | [] -> []
+    | x1::[] -> minus_przedzial [x1]
+    | x1::x2::[] -> czysc ((minus_przedzial [x1]) @ (minus_przedzial [x2]))
 
 (*suma mnogościowa przedziałów*)
 let suma_przedzialow (x : wartosc) (y : wartosc) = 
@@ -159,7 +166,12 @@ let plus_wartosc_przedzial (w : wartosc) (i : wartosc) =
 let razy_nieujemnych_przedzialow (x : wartosc) (y : wartosc) =
     match x, y with
     | [], _ | _, [] -> []
-    | (ax, bx)::[], (ay, by)::[] -> [(ax *. ay, bx *. by)]
+    | (ax, bx)::[], (ay, by)::[] -> 
+        match (is_nan (ax *. ay)), (is_nan (bx *. by)) with
+        | false, false -> [(ax *. ay, bx *. by)]
+        | false, true -> [(ax *. ay, 0.)]
+        | true, false -> [(0., bx *. by)]
+        | true, true -> [(0., 0.)]
 ;;
 
 (*mnożenie przedziałów niezawierających 0.*)
@@ -192,13 +204,14 @@ let razy_przedzialow (x : wartosc) (y : wartosc) =
     match x, y with 
     | [], _ | _, [] -> []
     | x, y ->
+        (*podział przedziału na część dodatnią i ujemną*)
         match (split x), (split y) with 
         | _, [] | [],_ -> []
         | x1::[], y1::[] -> mnozenie_bez_zera [x1] [y1]
         | x1::x2::[], y1::[] -> 
             suma_przedzialow
                 (mnozenie_bez_zera [x1] [y1])
-                (mnozenie_bez_zera [x1] [y1])
+                (mnozenie_bez_zera [x2] [y1])
         | x1::[], y1::y2::[] ->
             suma_przedzialow
                 (mnozenie_bez_zera [x1] [y1])
@@ -227,17 +240,32 @@ let razy_wartosc_przedzial (w : wartosc) (i : wartosc) =
 let odwrotnosc_bez_zera (i : wartosc) =
     match i with 
     | [] -> []
-    | (0., b)::[] -> [(1. /. b, infinity)]
-    | (a, 0.)::[] -> [(neg_infinity, 1. /. a)]
+    | (0., b)::[] -> if b <> 0. then [(1. /. b, infinity)] else []
+    | (a, 0.)::[] -> if a <> 0. then [(neg_infinity, 1. /. a)] else []
     | (a, b)::[] -> [(1. /. b, 1. /. a)]
 ;;
 
 (*odwrotność przedziału (i -> 1/i)*)
 let odwrotnosc_przedzialu (i : wartosc) = 
     if not (wartosc_w_przedziale i 0.) then 
-        odwrotnosc_bez_zera i else
-        match (split i) with x::y::[] ->
+        odwrotnosc_bez_zera i 
+    else
+        match (split i) with 
+        | [] -> []
+        | x::[] -> odwrotnosc_bez_zera [x]
+        | x::y::[] ->
             suma_przedzialow (odwrotnosc_bez_zera [x]) (odwrotnosc_bez_zera [y])
+;;
+
+(*odwrotnosc wartosci*)
+let odwrotnosc (x : wartosc) =
+    match x with
+    | [] -> []
+    | x1::[] -> odwrotnosc_przedzialu [x1]
+    | x1::x2::[] ->
+        czysc (suma_wartosci 
+                (odwrotnosc_przedzialu [x1])
+                (odwrotnosc_przedzialu [x2]))
 ;;
 
 (*modyfikatory*)
@@ -255,7 +283,7 @@ let plus (x : wartosc) (y : wartosc) =
 
 (*minus*)
 let minus x y = 
-    czysc (plus x (minus_przedzial y))
+    czysc (plus x (minus_wartosc y))
 ;;
 
 (*razy*)
@@ -271,6 +299,6 @@ let razy (x : wartosc) (y : wartosc) =
 
 (*podzielic*)
 let podzielic x y = 
-    czysc (razy x (odwrotnosc_przedzialu y))
+    czysc (razy x (odwrotnosc y))
 ;;
 

@@ -1,0 +1,5 @@
+arytmetyka.cmo : arytmetyka.cmi
+arytmetyka.cmx : arytmetyka.cmi
+arytmetyka.cmi :
+test.cmo : arytmetyka.cmi
+test.cmx : arytmetyka.cmx
