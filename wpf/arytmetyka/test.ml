@@ -15,6 +15,9 @@ assert(min_wartosc b = (-10.0));;
 assert(sr_wartosc b = 0.0);;
 
 let c = podzielic a b;; (* (-inf, -0.9] u [0.9, inf) *)
+let c_dual = razy (podzielic (wartosc_dokladna 1.) b) a;;
+
+assert(c = c_dual);;
 
 assert(not(in_wartosc c 0.5));;
 assert(max_wartosc c = infinity);;
@@ -51,4 +54,5 @@ assert(compare (podzielic i b) i = 0);;
 assert(compare (plus i c) i = 0);;
 assert(compare (minus i d) i = 0);;
 
-Printf.printf "Debug: All tests passed%!"
+Printf.printf "Debug: All tests passed%!\n"
+
