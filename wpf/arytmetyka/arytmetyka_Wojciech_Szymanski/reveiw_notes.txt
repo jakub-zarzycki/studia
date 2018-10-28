@@ -2,15 +2,18 @@
 
 dodaj sygnatury funkcji
 
-23: 30: możesz przykryć max in min. Wtedy zamiast max a b piszesz 
-        if a > b then a else b
+23: 30: możesz przykryć max i min:
+        let max a b = 
+            match (a > 0. || a <= 0.), (b > 0. || b <= 0.) with 
+            | false, false -> nan
+            | false, _ -> b
+            | _, false -> a
+            | _, _ -> if a > b then a else b
+        ;;
 
-40: po let ... in powinno być wcięcie. Według mnie nie po każdym w ciąglu, 
+40: po let ... in powinno być wcięcie. Według mnie nie po każdym w ciągu, 
     ale zostałem za to upomniany na labach. 
     Ładniej jest użyć let ... and ... in niż kilku let ... in
-
-    to min2 i max2 jest nie potrzebne, 
-    tam nie powinno pojawić się nan (chyba, że czegoś nie widzę)
 
 101: nie wiem co tu się dzieje
 
