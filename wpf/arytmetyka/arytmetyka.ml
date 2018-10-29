@@ -209,7 +209,7 @@ let razy_nieujemnych_przedzialow (x : wartosc) (y : wartosc) =
     | _ -> []
 ;;
 
-(*mnożenie przedziałów niezawierających 0.*)
+(*mnożenie przedziałów niezawierających 0. wewnątrz, może być na brzegu*)
 let razy_bez_zera (x : wartosc) (y : wartosc) = 
 
     (*x leży poniżej 0.*)
@@ -240,6 +240,7 @@ let razy_przedzialow (x : wartosc) (y : wartosc) =
     | [], _ | _, [] -> []
     | x, y ->
         (*podział przedziału na część dodatnią i ujemną*)
+        (*i mnożenie przedziałów o stałym znaku*)
         match (split x), (split y) with 
         | _, [] | [],_ -> []
         | x1::[], y1::[] -> razy_bez_zera [x1] [y1]
@@ -263,7 +264,7 @@ let razy_przedzialow (x : wartosc) (y : wartosc) =
         | _ -> []
 ;;
 
-(*mnożenie wartosc * przedział*)
+(*mnożenie wartosc *. przedział*)
 let razy_wartosc_przedzial (w : wartosc) (i : wartosc) = 
     match w with
     | [] -> []
@@ -273,7 +274,7 @@ let razy_wartosc_przedzial (w : wartosc) (i : wartosc) =
     | _ -> []
 ;;
 
-(*odwrotność przedziału bez 0.*)
+(*odwrotność przedziału bez 0. w środku, może być na brzegu*)
 let odwrotnosc_bez_zera (i : wartosc) =
     match i with 
     | [] -> []
@@ -312,7 +313,6 @@ let odwrotnosc (x : wartosc) =
 
 (*modyfikatory*)
 
-(*plus*)
 let plus (x : wartosc) (y : wartosc) =
     match x with
     | [] -> []
@@ -324,12 +324,10 @@ let plus (x : wartosc) (y : wartosc) =
     | _ -> []
 ;;
 
-(*minus*)
 let minus x y = 
     czysc (plus x (minus_wartosc y))
 ;;
 
-(*razy*)
 let razy (x : wartosc) (y : wartosc) = 
     match x with
     | [] -> []
@@ -341,7 +339,6 @@ let razy (x : wartosc) (y : wartosc) =
     | _ -> []
 ;;
 
-(*podzielic*)
 let podzielic x y = 
     czysc (razy x (odwrotnosc y))
 ;;
