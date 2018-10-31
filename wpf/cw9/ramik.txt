@@ -1,0 +1,3 @@
+(*modele obliczeń i ramki, raczej nie będzie tu kodu*)
+
+
