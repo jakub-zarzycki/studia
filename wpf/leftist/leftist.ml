@@ -1,8 +1,8 @@
 (*implementation of priority queue using leftist tree*)
+(*written by: Jakub Zarzycki 371722*)
+(*review by:  Michał Makowski*)
 
 (*queue is a binary tree or Null*)
-(*I can't do Objective Caml yet, so here we go:
-left child * value in node * right child * height*)
 type 'a queue = Node of 'a queue * 'a * 'a queue * int | Leaf
 
 (*exception raised by deleting from empty queue*)
