@@ -3,9 +3,7 @@
 (*queue is a binary tree or Null*)
 (*I can't do Objective Caml yet, so here we go:
 left child * value in node * right child * height*)
-type 'a tree = Node of 'a tree * 'a * 'a tree * int | Leaf
-
-type 'a queue = None | 'a tree
+type 'a queue = Node of 'a queue * 'a * 'a queue * int | Leaf
 
 (*exception raised by deleting from empty queue*)
 exception Empty
@@ -18,19 +16,17 @@ exception NoEmptyYetNoFull
 let empty = Leaf;;
 
 (*height of a tree*)
-let height (t : 'a queue) =
-    function 
-    | None -> 0
+let height (q : 'a queue) =
+    match q with
     | Leaf -> 0
     | Node(_, _, _, h) -> h
 ;;
 
 (*join queues = merge trees*)
-(*TODO: check if one of the queues is empty and handle it*)
-let rec join (x : 'a queue) (y : queue) =
+let rec join (x : 'a queue) (y : 'a queue) =
     match x, y with
-    | None, _ -> y
-    | _, None -> x
+    | Leaf, _ -> y
+    | _, Leaf -> x
     | Node(x_left, x_value, x_right, x_height), 
       Node(y_left, y_value, y_right, y_height) ->
         if x_value < y_value then
@@ -50,8 +46,9 @@ let rec join (x : 'a queue) (y : queue) =
 ;;
 
 (*insert element a to queue q*)
-let add a q =
-    join q Node(Leaf, a, Leaf, 1)
+let add (a : 'a) (q : 'a queue) =
+    let _a = Node(Leaf, a, Leaf, 1) in
+        join q _a
 ;;
 
 (*true if queue is empty false otherwise*)
@@ -63,11 +60,11 @@ let is_empty q =
 **raise Empty exception if queue is empty*)
 let delete_min (q : 'a queue) =
     if is_empty q then raise Empty
-
-    match q with 
-    | Node(q_left, q_value, q_right, _) ->
-        let q_new = join q_left q_right in 
-            q, q_new
-    | _ -> raise NoEmptyYetNoFull      
+    else
+        match q with 
+        | Node(q_left, q_value, q_right, _) ->
+            let q_new = join q_left q_right in 
+                q_value, q_new
+        | _ -> raise NoEmptyYetNoFull      
 ;;
 
