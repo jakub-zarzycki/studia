@@ -8,10 +8,6 @@ type 'a queue = Node of 'a queue * 'a * 'a queue * int | Leaf
 (*exception raised by deleting from empty queue*)
 exception Empty
 
-(*exception for surpassing match warnings*)
-(*it shouldn't ever appear, but it's nice thing to have*)
-exception NoEmptyYetNoFull
-
 (*empty queue*)
 let empty = Leaf;;
 
@@ -52,7 +48,7 @@ let add (a : 'a) (q : 'a queue) =
 ;;
 
 (*true if queue is empty false otherwise*)
-let is_empty q = 
+let is_empty (q : 'a queue) = 
     q = Leaf
 ;;
 
@@ -65,6 +61,6 @@ let delete_min (q : 'a queue) =
         | Node(q_left, q_value, q_right, _) ->
             let q_new = join q_left q_right in 
                 q_value, q_new
-        | _ -> raise NoEmptyYetNoFull      
+        | _ -> failwith "non-empty tree without root"      
 ;;
 
