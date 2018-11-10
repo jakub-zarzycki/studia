@@ -6,7 +6,10 @@
 *.native
 *.o
 *.so
-*/_build
+*_build
+*.depend
+*371722*
+math
 wpf/arytmetyka/arytmetyka
 wpf/arytmetyka/arytmetyk.zip
 wpf/arytmetyka/debug
