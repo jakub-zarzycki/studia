@@ -3,16 +3,6 @@
  * Review    : Alicja Ziarko
  *)
 
-
-(* 
- * we will use BST with order given by:
- * (a, b) < (x, y) if b < x
- * if they have non-empty interior we replace the one in the tree
- * with their union
- *
- * initially i wanted to just create pSet with 'k = 'a * 'a but it wouldn't work
- * T_T
- *)
 type 'a tree =
   | Empty
   | Node of 'a tree * 'a * 'a tree * int
@@ -33,14 +23,23 @@ exception Contained;;
 let cmp (a, b) (x, y) =
   if (b + 1) < x then -1
   else if y < (a - 1) then 1
-  else if a = x && b = y then 0 
-  else if a >= x && b <= y then raise Contained
+  else if a >= x && b <= y then 0 
+  (*else if a >= x && b <= y then raise Contained*)
   else raise Nonemptyintersection
 ;;
 
 let in_interval x (a, b) =
   a <= x && x <= b
 ;;
+
+(*returns sum of intervals if intersecting or first interval*)
+let sum_intervals (a, b) (c, d) =
+  try 
+    let c = cmp (a, b) (c, d) in
+      if c = 0 then (min a c), (max b d) else (a, b)
+  with
+    (*| Contained |*) Nonemptyintersection -> 
+        (min a c), (max b d);;
 
 type t = (int * int) tree;;
 
@@ -88,7 +87,19 @@ let rec min_elt = function
 let rec remove_min_elt = function
   | Node (Empty, _, r, _) -> r
   | Node (l, k, r, _) -> bal (remove_min_elt l) k r
-  | Empty -> invalid_arg "PSet.remove_min_elt"
+  | Empty -> Empty
+;;
+
+let rec max_elt = function
+  | Node (l, k, Empty, _) -> k
+  | Node (_, _, r, _) -> max_elt r
+  | Empty -> failwith "empty set has no max_elt"
+;;
+
+let rec remove_max_elt = function
+  | Node (l, k, Empty, _) -> l
+  | Node (l, k, r, _) -> bal l k (remove_max_elt r)
+  | Empty -> Empty
 ;;
 
 let merge t1 t2 =
@@ -112,34 +123,26 @@ let is_empty x =
   x = Empty
 ;;
 
-let rec add x = function
-  | Node (l, k, r, h) ->
-      (try
-        let c = cmp x k in
-        if c = 0 then Node (l, x, r, h)
-        else if c < 0 then
-          let nl = add x l in
-          bal nl k r
-        else
-          let nr = add x r in
-          bal l k nr
-      with
-        | Contained ->
-            Node (l, x, r, h)
-        | Nonemptyintersection ->
-            let lower_k, upper_k = k 
-            and lower_x, upper_x = x in
-            let lower = min lower_k lower_x
-            and upper = max upper_k upper_x in
-            Node (l, (lower, upper), r, h))
-  | Empty -> Node (Empty, x, Empty, 1)
+let mem x set =
+  let rec loop = function
+    | Node (l, (a, b), r, _) ->
+        in_interval x (a, b) || if x < a then loop l else loop r
+    | Empty -> false in
+  loop set
+;;
+
+let exists = mem;;
+
+let value = function
+  | Node (_, v, _, _) -> v
+  | Empty -> failwith "empty set has no value"
 ;;
 
 (*i give it 50-50, we'll see in tests*)
 let rec join l v r =
   match (l, r) with
-  | (Empty, _) -> add v r
-  | (_, Empty) -> add v l
+  | (Empty, _) -> bal Empty v r
+  | (_, Empty) -> bal l v Empty
   | (Node(ll, lv, lr, lh), Node(rl, rv, rr, rh)) ->
       if lh > rh + 2 then bal ll lv (join lr v r) else
       if rh > lh + 2 then bal (join l v rl) rv rr else
@@ -164,55 +167,64 @@ let split x set =
           let (lr, pres, rr) = loop x r in 
             (join l (lower, upper) lr, pres, rr)
       with
-        | Contained ->
-            (join l (lower, x - 1) Empty), 
-            true, 
-            (join Empty (x + 1, upper) r)
-        | Nonemptyintersection -> 
-            if in_interval x (lower, upper) 
-            then
-              (join l (lower, x) Empty), 
-              true,
-              (join Empty (x, upper) r)
-            else
-              if x < lower then
-                (l, false, join Empty (lower, upper) r)
-              else 
-                (join l (lower, upper) Empty, false, r))
+        Nonemptyintersection -> 
+          if in_interval x (lower, upper) 
+          then
+            (join l (lower, x) Empty), 
+            true,
+            (join Empty (x, upper) r)
+          else
+            if x < lower then
+              (l, false, join Empty (lower, upper) r)
+            else 
+              (join l (lower, upper) Empty, false, r))
   in
   let setl, pres, setr = loop x set in
     setl, pres, setr
+;;
+
+let rec add x = function
+  | Node (l, k, r, h) ->
+      (try
+        let c = cmp x k in
+        if c = 0 then Node (l, (sum_intervals x k), r, h)
+        else if c < 0 then
+          let nl = add x l in
+          bal nl k r
+        else
+          let nr = add x r in
+          bal l k nr
+      with
+        Nonemptyintersection ->
+          let lower, upper = sum_intervals k x in
+          let (nl,_, _) = split lower l
+          and (_, _, nr) = split upper r 
+          in
+            Node (nl, (lower, upper), nr, h))
+  | Empty -> Node (Empty, x, Empty, 1)
 ;;
 
 let remove (x, y) set =
   let rec loop = function
     | Node (l, (lower, upper), r, _) ->
         (try 
-          let c = cmp (x, y) (lower,upper) in
-          if c = 0 then merge l r else
+          let c = cmp (x, y) (lower, upper) in
+          if c = 0 
+          then
+            let nl = if lower = x then l else add (lower, x) l
+            and nr = if upper = y then r else add (y, upper) r
+            in
+              merge nl nr
+          else
           if c < 0 then bal (loop l) (lower, upper) r 
           else bal l (lower, upper) (loop r)
         with 
-          | Nonemptyintersection ->
-              let k = if lower < x then (lower, x) else (y, upper) in
-              join l k r
-          | Contained ->
-              merge
-                (merge l (Node (Empty, (lower, x), Empty, 1)))
-                (merge r (Node (Empty, (y, upper), Empty, 1))))
+          Nonemptyintersection ->
+            let k = if lower < x then (lower, x) else (y, upper) in
+            join l k r)
     | Empty -> Empty in
         loop set
 ;;
-
-let mem x set =
-  let rec loop = function
-    | Node (l, (a, b), r, _) ->
-        in_interval x (a, b) || if x < a then loop l else loop r
-    | Empty -> false in
-  loop set
-;;
-
-let exists = mem;;
 
 let iter f set =
   let rec loop = function
