@@ -11,9 +11,6 @@ type 'a tree =
  * but one is not contained in the other*)
 exception Nonemptyintersection;;
 
-(* exception for handling one interval contained in the other *)
-exception Contained;;
-
 (* 
  * cmp introduces partial order on intervals.
  * disjoint intervals are well-ordered and intersecting intervals are handled
@@ -21,10 +18,11 @@ exception Contained;;
  *)
 (* we assume that 2nd pair (x, y) came from our set *)
 let cmp (a, b) (x, y) =
-  if (b + 1) < x then -1
+  if a = max_int then 1
+  else if b = min_int then -1
+  else if (b + 1) < x then -1
   else if y < (a - 1) then 1
   else if a >= x && b <= y then 0 
-  (*else if a >= x && b <= y then raise Contained*)
   else raise Nonemptyintersection
 ;;
 
@@ -35,10 +33,10 @@ let in_interval x (a, b) =
 (*returns sum of intervals if intersecting or first interval*)
 let sum_intervals (a, b) (c, d) =
   try 
-    let c = cmp (a, b) (c, d) in
-      if c = 0 then (min a c), (max b d) else (a, b)
+    let compare = cmp (a, b) (c, d) in
+      if compare = 0 then (min a c), (max b d) else (a, b)
   with
-    (*| Contained |*) Nonemptyintersection -> 
+    | Nonemptyintersection -> 
         (min a c), (max b d);;
 
 type t = (int * int) tree;;
@@ -156,10 +154,10 @@ let split x set =
     | Node (l, (lower, upper), r, _) ->
       (try
         let c = cmp (x, x) (lower, upper) in
-        if c = 0 then  
-          (join l (lower, x - 1) Empty), 
-          true, 
-          (join Empty (x + 1, upper) r)
+        if c = 0 then
+          (if x - 1 >= lower then join l (lower, x - 1) Empty else l), 
+          true,
+          (if x + 1 <= upper then join Empty (x + 1, upper) r else r)
         else if c < 0 then
           let (ll, pres, rl) = loop x l in 
             (ll, pres, join rl (lower, upper) r)
@@ -183,11 +181,32 @@ let split x set =
     setl, pres, setr
 ;;
 
+let value = function
+  | Node (_, v, _, _) -> v
+  | _ -> failwith "Not an 'a tree Node"
+;;
+
+let add_helper (lower, upper) l r h =
+    let (nl, _, _) = split lower l
+    and (_, _, nr) = split upper r
+    in
+      let v, nl = 
+        if mem (lower - 1) nl
+        then (sum_intervals (lower, upper) (max_elt nl)), (remove_max_elt nl)
+        else (lower, upper), nl
+      in let nv, nr =
+        if mem (upper + 1) nr
+        then (sum_intervals v (min_elt nr)), (remove_min_elt nr)
+        else v, nr
+      in
+        Node (nl, nv, nr, h)
+;;
+
 let rec add x = function
   | Node (l, k, r, h) ->
       (try
         let c = cmp x k in
-        if c = 0 then Node (l, (sum_intervals x k), r, h)
+        if c = 0 then add_helper (sum_intervals x k) l r h
         else if c < 0 then
           let nl = add x l in
           bal nl k r
@@ -196,23 +215,26 @@ let rec add x = function
           bal l k nr
       with
         Nonemptyintersection ->
-          let lower, upper = sum_intervals k x in
-          let (nl,_, _) = split lower l
-          and (_, _, nr) = split upper r 
-          in
-            Node (nl, (lower, upper), nr, h))
+          add_helper (sum_intervals k x) l r h)
   | Empty -> Node (Empty, x, Empty, 1)
 ;;
 
+(* ^^^^^^^^above this line done^^^^^^^^^ *)
+
 let remove (x, y) set =
+  let (l, _, _) = split x set
+  and (_, _, r) = split y set 
+  in 
+    merge l r
+  (*
   let rec loop = function
     | Node (l, (lower, upper), r, _) ->
         (try 
           let c = cmp (x, y) (lower, upper) in
           if c = 0 
           then
-            let nl = if lower = x then l else add (lower, x) l
-            and nr = if upper = y then r else add (y, upper) r
+            let nl = if lower = x then l else add (lower, x - 1) l
+            and nr = if upper = y then r else add (y + 1, upper) r
             in
               merge nl nr
           else
@@ -224,6 +246,7 @@ let remove (x, y) set =
             join l k r)
     | Empty -> Empty in
         loop set
+        *)
 ;;
 
 let iter f set =
