@@ -25,10 +25,11 @@ let cmp (a, b) (x, y) =
   if a = min_int then
     (if b = max_int then raise Nonemptyintersection
      else (if b + 1 < x then -1 else raise Nonemptyintersection))
-  (*we already know that a is not minmal, so we can subtract*)
+  (* we already know that a is not minmal, so we can subtract *)
   else if b = max_int then
     (if a - 1 > y then 1 else raise Nonemptyintersection)
-  (*now we know that we are not in an edge case*)
+  (* now we know that we are not in an edge case *)
+  (* checking +-1 because we may want to connect intervals *)
   else if a - 1 > y then 1
   else if b + 1 < x then -1
   else if a >= x && b <= y then 0
@@ -224,8 +225,6 @@ let rec add x = function
           add_helper (sum_intervals k x) l r h)
   | Empty -> Node (Empty, x, Empty, 1)
 ;;
-
-(* ^^^^^^^^above this line done^^^^^^^^^ *)
 
 let remove (x, y) set =
   let (l, _, _) = split x set
