@@ -11,6 +11,10 @@ type 'a tree =
  * but one is not contained in the other*)
 exception Nonemptyintersection;;
 
+let in_interval x (a, b) =
+  a <= x && x <= b
+;;
+
 (* 
  * cmp introduces partial order on intervals.
  * disjoint intervals are well-ordered and intersecting intervals are handled
@@ -18,16 +22,17 @@ exception Nonemptyintersection;;
  *)
 (* we assume that 2nd pair (x, y) came from our set *)
 let cmp (a, b) (x, y) =
-  if a = max_int then 1
-  else if b = min_int then -1
-  else if (b + 1) < x then -1
-  else if y < (a - 1) then 1
-  else if a >= x && b <= y then 0 
+  if a = min_int then
+    (if b = max_int then raise Nonemptyintersection
+     else (if b + 1 < x then -1 else raise Nonemptyintersection))
+  (*we already know that a is not minmal, so we can subtract*)
+  else if b = max_int then
+    (if a - 1 > y then 1 else raise Nonemptyintersection)
+  (*now we know that we are not in an edge case*)
+  else if a - 1 > y then 1
+  else if b + 1 < x then -1
+  else if a >= x && b <= y then 0
   else raise Nonemptyintersection
-;;
-
-let in_interval x (a, b) =
-  a <= x && x <= b
 ;;
 
 (*returns sum of intervals if intersecting or first interval*)
@@ -186,6 +191,7 @@ let value = function
   | _ -> failwith "Not an 'a tree Node"
 ;;
 
+(* TODO: fix height when merging trees *)
 let add_helper (lower, upper) l r h =
     let (nl, _, _) = split lower l
     and (_, _, nr) = split upper r
@@ -226,27 +232,6 @@ let remove (x, y) set =
   and (_, _, r) = split y set 
   in 
     merge l r
-  (*
-  let rec loop = function
-    | Node (l, (lower, upper), r, _) ->
-        (try 
-          let c = cmp (x, y) (lower, upper) in
-          if c = 0 
-          then
-            let nl = if lower = x then l else add (lower, x - 1) l
-            and nr = if upper = y then r else add (y + 1, upper) r
-            in
-              merge nl nr
-          else
-          if c < 0 then bal (loop l) (lower, upper) r 
-          else bal l (lower, upper) (loop r)
-        with 
-          Nonemptyintersection ->
-            let k = if lower < x then (lower, x) else (y, upper) in
-            join l k r)
-    | Empty -> Empty in
-        loop set
-        *)
 ;;
 
 let iter f set =
@@ -273,10 +258,17 @@ let elements set =
 
 let below x s =
   let rec loop acc = function
-    | Empty -> acc
-    | Node (l, (a, b), r, _) -> acc + (b - a + 1) + loop acc l + loop acc r
+    | Empty -> if acc < 0 then max_int else acc
+    | Node (l, (a, b), r, _) -> 
+        if b - a < 0 then max_int 
+        else acc + (b - a + 1) + loop acc l + loop acc r
   in
-    let (leq, _, _) = split x s in
-    1 + loop 0 leq
+    let (leq, _, _) = split (if x = max_int then x else x + 1) s in
+     match leq with
+     | Empty -> 0
+     | _ ->
+        let res = loop 0 leq
+        in 
+          if res = max_int then max_int else res
 ;;
 
