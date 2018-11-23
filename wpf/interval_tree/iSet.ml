@@ -1,4 +1,6 @@
 (*
+ * implementation of iSet
+ * no memory version
  * Written by: Jakub Zarzycki 371722
  * Review    : Alicja Ziarko
  *)
@@ -112,7 +114,7 @@ let merge t1 t2 =
   | _, Empty -> t1
   | _ ->
       let k = min_elt t2 in
-      bal t1 k (remove_min_elt t2)
+        bal t1 k (remove_min_elt t2)
 ;;
 
 let create = 
@@ -131,8 +133,9 @@ let mem x set =
   let rec loop = function
     | Node (l, (a, b), r, _) ->
         in_interval x (a, b) || if x < a then loop l else loop r
-    | Empty -> false in
-  loop set
+    | Empty -> false 
+  in
+    loop set
 ;;
 
 let exists = mem;;
@@ -154,8 +157,6 @@ let rec join l v r =
 
 let split x set =
   let rec loop x = function
-    | Empty ->
-        (Empty, false, Empty)
     | Node (l, (lower, upper), r, _) ->
       (try
         let c = cmp (x, x) (lower, upper) in
@@ -181,6 +182,8 @@ let split x set =
               (l, false, join Empty (lower, upper) r)
             else 
               (join l (lower, upper) Empty, false, r))
+    | Empty ->
+        (Empty, false, Empty)
   in
   let setl, pres, setr = loop x set in
     setl, pres, setr
@@ -234,17 +237,19 @@ let remove (x, y) set =
 
 let iter f set =
   let rec loop = function
+    | Node (l, k, r, _) -> f k; loop l; loop r
     | Empty -> ()
-    | Node (l, k, r, _) -> loop l; f k; loop r in
-  loop set
+  in
+    loop set
 ;;
 
 let fold f set acc =
   let rec loop acc = function
-    | Empty -> acc
     | Node (l, k, r, _) ->
-          loop (f k (loop acc l)) r in
-  loop acc set
+          loop (f k (loop acc l)) r 
+    | Empty -> acc
+  in
+    loop acc set
 ;;
 
 let elements set = 
@@ -256,10 +261,10 @@ let elements set =
 
 let below x s =
   let rec loop acc = function
-    | Empty -> if acc < 0 then max_int else acc
     | Node (l, (a, b), r, _) -> 
         if b - a < 0 then max_int 
         else acc + (b - a + 1) + loop acc l + loop acc r
+    | Empty -> if acc < 0 then max_int else acc
   in
     let (leq, _, _) = split (if x = max_int then x else x + 1) s in
      match leq with
