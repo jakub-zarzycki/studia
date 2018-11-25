@@ -1,6 +1,5 @@
 (*
  * implementation of iSet
- * no memory version
  * Written by: Jakub Zarzycki 371722
  * Review    : Alicja Ziarko
  *)
@@ -8,6 +7,8 @@
 type 'a tree =
   | Empty
   | Node of 'a tree * 'a * 'a tree * int
+
+type t = (int * int) tree;;
 
 (* excteption to handle non empty intersections of intervals in cmp, 
  * but one is not contained in the other*)
@@ -22,7 +23,7 @@ let in_interval x (a, b) =
  * disjoint intervals are well-ordered and intersecting intervals are handled
  * via exceptions
  *)
-(* we assume that 2nd pair (x, y) came from our set *)
+(* we assume that 2nd pair (x, y) came from existing set *)
 let cmp (a, b) (x, y) =
   if a = min_int then
     (if b = max_int then raise Nonemptyintersection
@@ -45,9 +46,8 @@ let sum_intervals (a, b) (c, d) =
       if compare = 0 then (min a c), (max b d) else (a, b)
   with
     | Nonemptyintersection -> 
-        (min a c), (max b d);;
-
-type t = (int * int) tree;;
+        (min a c), (max b d)
+;;
 
 let height = function
   | Node (_, _, _, h) -> h
@@ -69,8 +69,8 @@ let bal l k r =
           (match lr with
           | Node (lrl, lrk, lrr, _) ->
               make (make ll lk lrl) lrk (make lrr k r)
-          | Empty -> assert false)
-    | Empty -> assert false
+          | Empty -> failwith "cannot balance")
+    | Empty -> failwith "cannot balance"
   else if hr > hl + 2 then
     match r with
     | Node (rl, rk, rr, _) ->
@@ -79,15 +79,15 @@ let bal l k r =
           (match rl with
           | Node (rll, rlk, rlr, _) ->
               make (make l k rll) rlk (make rlr rk rr)
-          | Empty -> assert false)
-    | Empty -> assert false
+          | Empty -> failwith "cannot balance")
+    | Empty -> failwith "cannot balance"
   else Node (l, k, r, max hl hr + 1)
 ;;
 
 let rec min_elt = function
   | Node (Empty, k, _, _) -> k
   | Node (l, _, _, _) -> min_elt l
-  | Empty -> raise Not_found
+  | Empty -> failwith "empty set has no min_elt"
 ;;
 
 let rec remove_min_elt = function
@@ -194,15 +194,16 @@ let value = function
   | _ -> failwith "Not an 'a tree Node"
 ;;
 
-(* TODO: fix height when merging trees *)
 let add_helper (lower, upper) l r h =
     let (nl, _, _) = split lower l
     and (_, _, nr) = split upper r
     in
       let v, nl = 
         if mem (lower - 1) nl
-        then (sum_intervals (lower, upper) (max_elt nl)), (remove_max_elt nl)
-        else (lower, upper), nl
+        then
+          (sum_intervals (lower, upper) (max_elt nl)), (remove_max_elt nl)
+        else
+          (lower, upper), nl
       in let nv, nr =
         if mem (upper + 1) nr
         then (sum_intervals v (min_elt nr)), (remove_min_elt nr)
