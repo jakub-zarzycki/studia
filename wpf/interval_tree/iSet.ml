@@ -24,7 +24,7 @@ let cmp (a, b) (x, y) =
   if a = min_int then
     (if b = max_int then 2
      else (if b + 1 < x then -1 else 2))
-  (* we already know that a is not minmal, so we can subtract *)
+  (* we already know that a is not minimal, so we can subtract *)
   else if b = max_int then
     (if a - 1 > y then 1 else 2)
   (* now we know that we are not in an edge case *)
@@ -37,11 +37,9 @@ let cmp (a, b) (x, y) =
 
 (*returns sum of intervals if intersecting or first interval*)
 let sum_intervals (a, b) (c, d) =
-  let compare = cmp (a, b) (c, d) in
-    match compare with
-    | 0 -> (min a c), (max b d) 
-    | 2 -> (min a c), (max b d) 
-    | _ -> (a, b)
+  match cmp (a, b) (c, d) with
+  | 0 | 2 -> (min a c), (max b d) 
+  | _ -> (a, b)
 ;;
 
 let height = function
@@ -59,12 +57,12 @@ let bal l k r =
   if hl > hr + 2 then
     match l with
     | Node (ll, lk, lr, _) ->
-        if height ll >= height lr then make ll lk (make lr k r)
-        else
-          (match lr with
-          | Node (lrl, lrk, lrr, _) ->
-              make (make ll lk lrl) lrk (make lrr k r)
-          | Empty -> failwith "cannot balance")
+      if height ll >= height lr then make ll lk (make lr k r)
+      else
+        (match lr with
+        | Node (lrl, lrk, lrr, _) ->
+            make (make ll lk lrl) lrk (make lrr k r)
+        | Empty -> failwith "cannot balance")
     | Empty -> failwith "cannot balance"
   else if hr > hl + 2 then
     match r with
@@ -112,10 +110,6 @@ let merge t1 t2 =
         bal t1 k (remove_min_elt t2)
 ;;
 
-let create = 
-  Empty
-;;
-
 let empty = 
   Empty
 ;;
@@ -132,8 +126,6 @@ let mem x set =
   in
     loop set
 ;;
-
-let exists = mem;;
 
 let value = function
   | Node (_, v, _, _) -> v
@@ -153,8 +145,7 @@ let rec join l v r =
 let split x set =
   let rec loop x = function
     | Node (l, (lower, upper), r, _) ->
-        let c = cmp (x, x) (lower, upper) in
-        (match c with
+        (match cmp (x, x) (lower, upper) with
         | 0 ->
           (if x - 1 >= lower then join l (lower, x - 1) Empty else l), 
           true,
@@ -183,11 +174,6 @@ let split x set =
     setl, pres, setr
 ;;
 
-let value = function
-  | Node (_, v, _, _) -> v
-  | _ -> failwith "Not an 'a tree Node"
-;;
-
 let add_helper (lower, upper) l r h =
     let (nl, _, _) = split lower l
     and (_, _, nr) = split upper r
@@ -208,16 +194,16 @@ let add_helper (lower, upper) l r h =
 
 let rec add x = function
   | Node (l, k, r, h) ->
-      let c = cmp x k in
-      if c = 0 then add_helper (sum_intervals x k) l r h
-      else if c = -1 then
+      (match cmp x k with
+      | 0 -> add_helper (sum_intervals x k) l r h
+      | -1 ->
         let nl = add x l in
         bal nl k r
-      else if c = 1 then
+      | 1 ->
         let nr = add x r in
         bal l k nr
-      else
-        add_helper (sum_intervals k x) l r h
+      | _ ->
+        add_helper (sum_intervals k x) l r h)
   | Empty -> Node (Empty, x, Empty, 1)
 ;;
 
@@ -230,7 +216,7 @@ let remove (x, y) set =
 
 let iter f set =
   let rec loop = function
-    | Node (l, k, r, _) -> f k; loop l; loop r
+    | Node (l, k, r, _) -> loop l; f k; loop r
     | Empty -> ()
   in
     loop set
@@ -265,6 +251,6 @@ let below x s =
      | _ ->
         let res = loop 0 leq
         in 
-          if res = max_int then max_int else res
+          if res = max_int || res < 0 then max_int else res
 ;;
 
