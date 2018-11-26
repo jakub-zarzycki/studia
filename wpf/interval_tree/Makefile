@@ -1,4 +1,4 @@
-# The base name of the executable
+# he base name of the executable
 PROG=testy
 
 # The list of object files
@@ -6,9 +6,9 @@ CMOS=iSet.cmo testy.cmo
 CMXS=$(CMOS:.cmo=.cmx)
 
 # Choose your target: bytecode, native or both
-all: $(PROG).byte
+#all: $(PROG).byte
 #all: $(PROG).native
-#all: $(PROG).byte $(PROG).native
+all: $(PROG).byte $(PROG).native
 
 OCAMLC=ocamlc
 OCAMLOPT=ocamlopt

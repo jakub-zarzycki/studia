@@ -1,7 +1,7 @@
 (*
  * implementation of iSet
  * Written by: Jakub Zarzycki 371722
- * Review    : Alicja Ziarko
+ * Review    : Natalia Kucharczuk
  *)
 
 type 'a tree =
@@ -9,10 +9,6 @@ type 'a tree =
   | Node of 'a tree * 'a * 'a tree * int
 
 type t = (int * int) tree;;
-
-(* excteption to handle non empty intersections of intervals in cmp, 
- * but one is not contained in the other*)
-exception Nonemptyintersection;;
 
 let in_interval x (a, b) =
   a <= x && x <= b
@@ -26,27 +22,26 @@ let in_interval x (a, b) =
 (* we assume that 2nd pair (x, y) came from existing set *)
 let cmp (a, b) (x, y) =
   if a = min_int then
-    (if b = max_int then raise Nonemptyintersection
-     else (if b + 1 < x then -1 else raise Nonemptyintersection))
+    (if b = max_int then 2
+     else (if b + 1 < x then -1 else 2))
   (* we already know that a is not minmal, so we can subtract *)
   else if b = max_int then
-    (if a - 1 > y then 1 else raise Nonemptyintersection)
+    (if a - 1 > y then 1 else 2)
   (* now we know that we are not in an edge case *)
   (* checking +-1 because we may want to connect intervals *)
   else if a - 1 > y then 1
   else if b + 1 < x then -1
   else if a >= x && b <= y then 0
-  else raise Nonemptyintersection
+  else 2
 ;;
 
 (*returns sum of intervals if intersecting or first interval*)
 let sum_intervals (a, b) (c, d) =
-  try 
-    let compare = cmp (a, b) (c, d) in
-      if compare = 0 then (min a c), (max b d) else (a, b)
-  with
-    | Nonemptyintersection -> 
-        (min a c), (max b d)
+  let compare = cmp (a, b) (c, d) in
+    match compare with
+    | 0 -> (min a c), (max b d) 
+    | 2 -> (min a c), (max b d) 
+    | _ -> (a, b)
 ;;
 
 let height = function
@@ -158,20 +153,19 @@ let rec join l v r =
 let split x set =
   let rec loop x = function
     | Node (l, (lower, upper), r, _) ->
-      (try
         let c = cmp (x, x) (lower, upper) in
-        if c = 0 then
+        (match c with
+        | 0 ->
           (if x - 1 >= lower then join l (lower, x - 1) Empty else l), 
           true,
           (if x + 1 <= upper then join Empty (x + 1, upper) r else r)
-        else if c < 0 then
+        | -1 ->
           let (ll, pres, rl) = loop x l in 
             (ll, pres, join rl (lower, upper) r)
-        else
+        | 1 ->
           let (lr, pres, rr) = loop x r in 
             (join l (lower, upper) lr, pres, rr)
-      with
-        Nonemptyintersection -> 
+        | _ ->
           if in_interval x (lower, upper) 
           then
             (join l (lower, x) Empty), 
@@ -214,18 +208,16 @@ let add_helper (lower, upper) l r h =
 
 let rec add x = function
   | Node (l, k, r, h) ->
-      (try
-        let c = cmp x k in
-        if c = 0 then add_helper (sum_intervals x k) l r h
-        else if c < 0 then
-          let nl = add x l in
-          bal nl k r
-        else
-          let nr = add x r in
-          bal l k nr
-      with
-        Nonemptyintersection ->
-          add_helper (sum_intervals k x) l r h)
+      let c = cmp x k in
+      if c = 0 then add_helper (sum_intervals x k) l r h
+      else if c = -1 then
+        let nl = add x l in
+        bal nl k r
+      else if c = 1 then
+        let nr = add x r in
+        bal l k nr
+      else
+        add_helper (sum_intervals k x) l r h
   | Empty -> Node (Empty, x, Empty, 1)
 ;;
 
