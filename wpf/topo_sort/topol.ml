@@ -6,88 +6,59 @@
 exception Cykliczne;;
 
 (*
- * plan: 
- * translate 'a to int, sort int, translate int to 'a
- *)  
-
-(*
- * topological sort for iniegers
+ * new idea:
+ * use PMap to keep track of visited nodes
+ * travese it as int graph
+ * i thnk complexity is better as well
+ * it's O(n^2) instead of O(n^2) now
+ * not a lot but it's something, lol
+ * those factors of 3n
  *)
-let topo_sort encoder (graph : ('a * 'a list) array) =
+let topo_sort neighbours (graph : ('a * 'a list) list) =
     let sorted = ref []
-    (* in visited: -1 : to do; 0 : doing; 1 : done *)
-    and visited = Array.make (Array.length graph) (-1)
+    (* maps nodes to states: *)
+    (* Not_found : to do; 0 : doing; 1 : done *)
+    and visited = ref PMap.empty
     in
-        let visit v_encoded = 
-                visited.(v_encoded) <- visited.(v_encoded) + 1
+        let rec add v =
+            try 
+                let state = PMap.find v !visited
+                in 
+                    if state = 0 then raise Cykliczne
+            with
+                Not_found ->
+                    visited := PMap.add v 0 !visited;
+                    
+                    (try 
+                        let children = PMap.find v neighbours
+                        in
+                            List.iter add children
+                     with
+                        Not_found -> ());
+
+                    sorted := v::!sorted;
+                    visited := PMap.add v 1 !visited
         in
-            let rec add v =
-                let v_encoded = PMap.find v encoder 
-                in
-                    if visited.(v_encoded) = 0 then raise Cykliczne
-                    else if visited.(v_encoded) < 0 then 
-                        visit v_encoded;
-                        
-                        (match graph.(v_encoded) with
-                        | _, [] -> ()
-                        | _, children -> List.iter add children);
-                        
-                        if visited.(v_encoded) = 0 
-                        then 
-                            sorted := v_encoded::!sorted;
-                            visit v_encoded
-            in
-                for i = 0 to Array.length graph - 1 do
-                    add (fst graph.(i))
-                done;
-                !sorted
+            (* should have used fold_left once again *)
+            List.iter (fun (x,l) -> add x) graph;
+            !sorted
 ;;
 
-(*
- * translates list of adjacency lists to
- * array of adjacency lists
+(* 
+ * maps v to graph[v]
+ * i should have used fold_left instead of iter
  *)
-let encode g = 
-    Array.of_list g
-;;
-
-(*
- * translate int graph to abstract graph
- *)
-let decode decoder l =
-    List.rev (List.fold_left (fun acc x -> decoder.(x)::acc) [] l)
-;;
-
-let make_decoder graph =
-    (* fst List.hd graph ensures type correctness *)
-    let decoder = Array.make (List.length graph) (fst (List.hd graph)) 
+let find_neighbours graph =
+    let neighbours = ref PMap.empty
     in
-        let i = ref 0 
-        in
-            List.iter (fun x -> 
-                        decoder.(!i) <- (fst x);
-                        i := !i + 1)
-                      graph;
-            decoder
-;;
+        List.iter (fun (v, l) -> neighbours:= PMap.add v l !neighbours)
+                  graph;
 
-let make_encoder decoder =
-    let encoder = ref (PMap.create compare)
-    in
-        for i = 0 to Array.length decoder - 1 do
-            encoder := PMap.add (decoder.(i)) i !encoder;
-        done;
-        !encoder
+        !neighbours
 ;;
 
 let topol (graph : ('a * 'a list) list) =
-    let decoder = make_decoder graph in
-    let encoder = make_encoder decoder
-    in
-        decode decoder (topo_sort encoder (encode graph))
+    topo_sort (find_neighbours graph) graph
 ;;
 
-let graf = [[(1, [2]); (1, [3])]];;
-
-let test = topol graf;;
 
