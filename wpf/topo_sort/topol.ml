@@ -5,14 +5,22 @@
 
 exception Cykliczne;;
 
+(* 
+ * maps v to graph[v]
+ * returns ('a 'a list) PMap
+ * O(V) running time
+ * (O(#veritces with non-empty adjastency lists))
+ * O(V) space
+ *)
+let find_neighbours graph =
+    List.fold_left (fun acc (v, l) -> PMap.add v l acc) PMap.empty graph
+;;
+
 (*
- * new idea:
- * use PMap to keep track of visited nodes
- * travese it as int graph
- * i thnk complexity is better as well
- * it's O(n^2) instead of O(n^2) now
- * not a lot but it's something, lol
- * those factors of 3n
+ * topologicallt sort graph graph with adjastency list 
+ * neighbours = find_neighbours graph
+ * O(V + E) running time
+ * O(V) space
  *)
 let topo_sort neighbours (graph : ('a * 'a list) list) =
     let sorted = ref []
@@ -20,6 +28,7 @@ let topo_sort neighbours (graph : ('a * 'a list) list) =
     (* Not_found : to do; 0 : doing; 1 : done *)
     and visited = ref PMap.empty
     in
+        (* changes visited and sorted *)
         let rec add v =
             try 
                 let state = PMap.find v !visited
@@ -28,10 +37,11 @@ let topo_sort neighbours (graph : ('a * 'a list) list) =
             with
                 Not_found ->
                     visited := PMap.add v 0 !visited;
-                    
+
                     (try 
                         let children = PMap.find v neighbours
                         in
+                            (* changes sorted and visited *)
                             List.iter add children
                      with
                         Not_found -> ());
@@ -39,26 +49,19 @@ let topo_sort neighbours (graph : ('a * 'a list) list) =
                     sorted := v::!sorted;
                     visited := PMap.add v 1 !visited
         in
-            (* should have used fold_left once again *)
-            List.iter (fun (x,l) -> add x) graph;
+            (* should have used fold_left *)
+            (* changes sorted and visited *)
+            List.iter (fun (x, l) -> add x) graph;
             !sorted
 ;;
 
-(* 
- * maps v to graph[v]
- * i should have used fold_left instead of iter
+(*
+ * topologically sort graph
+ * it's jsut wrapper for topo_sort so
+ * O(V + E) running time
+ * O(V) space
  *)
-let find_neighbours graph =
-    let neighbours = ref PMap.empty
-    in
-        List.iter (fun (v, l) -> neighbours:= PMap.add v l !neighbours)
-                  graph;
-
-        !neighbours
-;;
-
 let topol (graph : ('a * 'a list) list) =
     topo_sort (find_neighbours graph) graph
 ;;
-
 
