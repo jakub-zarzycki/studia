@@ -62,6 +62,7 @@ let move p1 p2 x =
  * przesuń o werktor p1
  *)
 let odbicie p1 p2 x =
+    if fst p1 = fst p2 && snd p1 = snd p2 then failwith "illegal input";
     let x, p2 = move p1 p2 x in
     let p = rzut p2 x 
     in
@@ -69,12 +70,16 @@ let odbicie p1 p2 x =
 ;;
 
 let prostokat (x1, y1) (x2, y2) =
+    if x1 >= x2 && y1 >= y2 then failwith "illegal input";
+    
     function (x, y) -> if x <= x2 && x >= x1 && 
                           y >= y1 && y <= y2
                        then 1 else 0
 ;;
 
 let kolko (x1, y1) r (x, y) =
+    if r < 0. then failwith "illegal input";
+
     if ((x -. x1) *. (x -. x1)) +. ((y -. y1) *. (y -. y1)) <= r *. r
     then 1 else 0
 ;;
@@ -82,7 +87,7 @@ let kolko (x1, y1) r (x, y) =
 (* 
  * samo składanie ma koszt stały
  *)
-let zloz x y f = function p ->
+let zloz x y f = function p ->  
     let d = sprawdz_strone x y p in
         if d = -1 then f p + f (odbicie x y p)
         else if d = 0 then f p

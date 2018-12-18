@@ -49,7 +49,6 @@ let topo_sort neighbours (graph : ('a * 'a list) list) =
                     sorted := v::!sorted;
                     visited := PMap.add v 1 !visited
         in
-            (* should have used fold_left *)
             (* changes sorted and visited *)
             List.iter (fun (x, l) -> add x) graph;
             !sorted
