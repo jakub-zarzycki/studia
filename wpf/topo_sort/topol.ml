@@ -1,6 +1,7 @@
 (* 
  * written by: Jakub Zarzycki
  * review    : Alicja Ziarko
+ * requires PMap
 *)
 
 exception Cykliczne;;
@@ -8,8 +9,7 @@ exception Cykliczne;;
 (* 
  * maps v to graph[v]
  * returns ('a 'a list) PMap
- * O(V) running time
- * (O(#veritces with non-empty adjastency lists))
+ * O(V) time running
  * O(V) space
  *)
 let find_neighbours graph =
@@ -17,18 +17,18 @@ let find_neighbours graph =
 ;;
 
 (*
- * topologicallt sort graph graph with adjastency list 
+ * topologically sort graph with adjacency list 
  * neighbours = find_neighbours graph
  * O(V + E) running time
  * O(V) space
  *)
-let topo_sort neighbours (graph : ('a * 'a list) list) =
+let topo_sort neighbours graph =
     let sorted = ref []
     (* maps nodes to states: *)
     (* Not_found : to do; 0 : doing; 1 : done *)
     and visited = ref PMap.empty
     in
-        (* changes visited and sorted *)
+        (* changes sorted and visited *)
         let rec add v =
             try 
                 let state = PMap.find v !visited
@@ -56,7 +56,7 @@ let topo_sort neighbours (graph : ('a * 'a list) list) =
 
 (*
  * topologically sort graph
- * it's jsut wrapper for topo_sort so
+ * it's just a wrapper for topo_sort so
  * O(V + E) running time
  * O(V) space
  *)
