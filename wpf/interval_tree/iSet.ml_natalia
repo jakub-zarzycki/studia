@@ -1,0 +1,183 @@
+(* Autor: Natalia Kucharczuk *)
+(* Recenzent: Jakub Zarzycki *)
+
+(* Typ t jest zbiorem przedzialow reprezentowanym przez drzewo BST *)
+(* Przyjmuje on jedna z dwoch wartosci: *)
+(* Empty jesli zbior przedzialow jest pusty *)
+(* Node (lewe poddrzewo, przedzial, prawe poddrzewo, *)
+(* liczba liczb calkowitych w zbiorze, wysokosc drzewa)*)  
+type t=
+  | Empty
+  | Node of t * (int * int) * t * int * int
+
+(* Funkcje pomocnicze *)
+	
+let height = function
+  | Node (_, _, _, _, h) -> h
+  | Empty -> 0
+	
+(* funkcja cmp dla liczby calkowitej x i przedzialu y zwraca *)
+(* 0 jesli x nalezy do y *)
+(* 1 jeśli x lezy na prawo od y *)
+(* -1 jeśli x lezy na lewo od y *)   
+let cmp x y =
+  if fst y <= x then
+    if x <= snd y then 0
+    else 1
+  else -1
+
+(* Funkcja no_elt_one liczy ilosc liczb calkowitych w przedziale x, *)
+(* jesli liczba ta jest wieksza niz max_int, zwraca max_int *)
+let no_elt_one x =
+  if snd x >= -2 && snd x + 1 - max_int >= fst x then max_int
+    else snd x + 1 - fst x
+
+(* Funkcja no_elt zwraca ilosc liczb calkowitych należących do zbioru*)
+let no_elt = function
+  | Node (_, _, _, n, _) -> n
+  | Empty -> 0
+
+(* Funkcja sum_two sumuje dwie liczby, *)
+(* jesli ich suma jest wieksza niz max_int, zwraca max_int *)
+let sum_two x y =
+  if max_int - x <= y then max_int else x + y
+
+(* Funkcja sum zwraca sume ilosci liczb calkowitych w drzewach *)
+(* l, r oraz przedziale k *)
+let sum l k r=
+  let a = sum_two (no_elt r) (no_elt l) in
+    sum_two (no_elt_one k) a
+
+let make l k r = Node (l, k, r, sum l k r, max (height l) (height r) + 1)
+
+let bal l k r =
+  let hl = height l in
+  let hr = height r in
+  if hl > hr + 2 then
+    match l with
+    | Node (ll, lk, lr, _, _) ->
+        if height ll >= height lr then make ll lk (make lr k r)
+        else
+          (match lr with
+          | Node (lrl, lrk, lrr, _, _) ->
+              make (make ll lk lrl) lrk (make lrr k r)
+          | Empty -> assert false)
+    | Empty -> assert false
+  else if hr > hl + 2 then
+    match r with
+    | Node (rl, rk, rr, _, _) ->
+        if height rr >= height rl then make (make l k rl) rk rr
+        else
+          (match rl with
+          | Node (rll, rlk, rlr, _, _) ->
+              make (make l k rll) rlk (make rlr rk rr)
+          | Empty -> assert false)
+    | Empty -> assert false
+  else Node (l, k, r, sum l k r, max hl hr + 1)
+
+let rec min_elt = function
+  | Node (Empty, k, _, _, _) -> k
+  | Node (l, _, _, _, _) -> min_elt l
+  | Empty -> raise Not_found
+
+let rec remove_min_elt = function
+  | Node (Empty, _, r, _, _) -> r
+  | Node (l, k, r, _, _) -> bal (remove_min_elt l) k r
+  | Empty -> invalid_arg "ISet.remove_min_elt"
+
+let merge t1 t2 =
+  match t1, t2 with
+  | Empty, _ -> t2
+  | _, Empty -> t1
+  | _ ->
+      let k = min_elt t2 in
+      bal t1 k (remove_min_elt t2)
+
+(* add_one dodaje przedział x = (a, b) do zbioru, w którym kazdy przedzial *)
+(* ma puste przeciecie z x. *)
+(* Jesli w zbiorze znajduje sie przedzial (c, a-1) badz (b+1, d) *)
+(* to add_one usunie go i doda (c, b), (a, d) badz (c, d) *)
+let rec add_one ((beg, endl) as k) set = match set with
+  | Node (l, ((fst, snd) as t), r, _, _) ->	
+      if snd <> max_int && beg > snd + 1 then
+        bal l t (add_one k r)
+      else if endl <> max_int &&  endl + 1 < fst then
+        bal (add_one k l) t r
+      else 
+        let newbeg = min fst beg and
+          newend = max snd endl
+        in
+          add_one (newbeg, newend) (merge l r)
+  | Empty -> Node(Empty, k, Empty, no_elt_one k, 1)
+
+let rec join l v r =
+  match (l, r) with
+  | (Empty, _) -> add_one v r
+  | (_, Empty) -> add_one v l
+  | (Node(ll, lv, lr, _, lh), Node(rl, rv, rr, _, rh)) ->
+      if lh > rh + 2 then bal ll lv (join lr v r) else
+      if rh > lh + 2 then bal (join l v rl) rv rr else
+      make l v r
+
+(* Glowne funkcje programu *)
+
+let empty =  Empty
+
+let is_empty x = 
+  x = Empty
+	
+let rec split x = function
+  | Empty ->
+      (Empty, false, Empty)
+  | Node (l, v, r, _, _) ->
+      let c = cmp x v in
+        if c = 0 then
+          let ll = if fst v < x then add_one (fst v, x - 1) l
+            else l and
+          rr = if snd v > x then add_one (x + 1, snd v) r
+            else r in (ll, true, rr)
+        else if c < 0 then
+          let (ll, pres, rl) = split x l in (ll, pres, join rl v r)
+        else
+          let (lr, pres, rr) = split x r in (join l v lr, pres, rr)
+
+let remove (x, y) set =
+  let (l, _, _) = split x set
+  and (_, _, r) = split y set 
+  in 
+    merge l r
+
+let add x set =
+  add_one x (remove x set)
+
+let mem x set =
+  let rec loop = function
+    | Node (l, k, r, _, _) ->
+        let c = cmp x k in
+        c = 0 || loop (if c < 0 then l else r)
+    | Empty -> false in
+  loop set
+
+let iter f set =
+  let rec loop = function
+    | Empty -> ()
+    | Node (l, k, r, _, _) -> loop l; f k; loop r in
+  loop set
+
+let fold f set acc =
+  let rec loop acc = function
+    | Empty -> acc
+    | Node (l, k, r, _, _) ->
+          loop (f k (loop acc l)) r in
+  loop acc set
+
+let elements set = 
+  let rec loop acc = function
+    | Empty -> acc
+    | Node (l, k, r, _, _) -> loop (k :: loop acc r) l in
+  loop [] set
+
+let below x set =
+  let (l, b, _) = split x set in
+    if not b || no_elt l = max_int then no_elt l
+      else no_elt l + 1

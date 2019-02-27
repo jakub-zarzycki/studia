@@ -1,0 +1,25 @@
+nie trzeba opisywać co robią:
+    height
+    make
+    bal
+    min_elt
+    remove_min_elt
+    merge
+    join
+
+do wieloliniowych komentarzy lepiej używać 
+    (*
+     *
+     *)
+
+jeśli masz ciągle pisać fst x, snd x to możesz użyć
+    let no_elt (beg, end) = ...
+
+lubię ;; po każdej funkcji, ale to kwestia stylu
+
+kod po angielsku, komentarze po polsku - dziwnie wygląda
+
+linia 130 ma 84 znaki (limit 80)
+
+i możesz użyć splita do remove
+
