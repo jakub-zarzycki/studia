@@ -20,3 +20,6 @@ wpf/arytmetyka/debug/arytmetyka
 wpf/kolokwia/*
 wpf/interval_tree/stuff.ml
 supercomputing
+*CMakeLists.txt
+*cmake-build-debug
+*.idea
