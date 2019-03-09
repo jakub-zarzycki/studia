@@ -17,7 +17,10 @@ int main() {
     int token;
     char *arg1, *arg2;
 
+    // TODO: remove debugs
     put (&history, "000", 5);
+    put (&history, "00", 3);
+    removeStates(&history, "000");
 
     printf("testing getline\n");
     while (parse(&token, &arg1, &arg2)) {
@@ -55,19 +58,22 @@ int main() {
                 printf("tego jeszcze nie ma\n");
                 break;
 
+            case ERROR:
+
+                printf("ERROR\n");
+                break;
+
             case REMOVE:
 
-                removeStates(&history, arg1);
+                if (!removeStates(&history, arg1)) {
+                    printf("error in remove\n");
+                    return 1;
+                }
                 break;
 
             case VALID:
 
                 printf("history validity is: %d\n", valid(&history, arg1));
-                break;
-
-            case ERROR:
-
-                printf("ERROR\n");
                 break;
 
             case SKIP: default:

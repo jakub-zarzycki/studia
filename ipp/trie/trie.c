@@ -2,21 +2,32 @@
 // Created by jakub on 05.03.19.
 //
 
+// TODO: when removing path represent invalid paths by NULL energy pointer
+//       that would require changes in getEnergy, put, removeStates, and valid
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
 #include "trie.h"
 
+
+//  TODO: change trie to node when calling functions
+//        may use trieNode, but i'm lazy af
+
+//  TODO: it's basically copy - past (i wrote it twice tho)
+//        call valid and check for energy
 char getEnergy(Node **trie, char *states, int64_t *res) {
 
     size_t n = strlen(states);
     Node *iterator = *trie;
 
+    // TODO: clean-up
     // this 3 lines could be getNode()
     // it's 3rd time i'm repeating them a lot
     for (size_t i = 0; i < n; i++) {
 
+        printf("checking %d\n", states[i] - (char )'0');
         if (iterator->children[states[i] - (char)'0'] == NULL) return 0;
 
         iterator = iterator->children[states[i] - (char)'0'];
@@ -58,39 +69,44 @@ char put(Node **trie, char *states, int64_t energy) {
     }
 
     *iterator->energy = energy;
+    printf("%zu adress is %u\n", energy, iterator);
 
     return 1;
 }
 
-void removeNode(Node *trie) {
+void removeNode(Node **trie) {
 
-    if (trie == NULL) return;
+    if (*trie == NULL) return;
 
     for (char i = 0; i < 4; i++) {
-        removeNode(trie->children[i]);
-        free(trie->children[i]);
+
+        //printf("removing children\n");
+        removeNode(&(*trie)->children[i]);
     }
 
-    printf("removing node with energy: %zu", *trie->energy);
+    //printf("removing node with energy %zu at %zu\n", ((*trie)->energy, trie));
+    free(*trie);
+    *trie = NULL;
+
 }
 
 char removeStates(Node **trie, char *states) {
 
-    if (trie == NULL) return 1;
+    if (*trie == NULL) return 1;
 
-    Node *iterator = *trie;
     size_t n = strlen(states);
 
     // find last element of state history
     for (size_t i = 0; i < n; i++) {
 
-        if (iterator->children[states[i] - (char)'0'] == NULL) return 1;
-        iterator = iterator->children[states[i] - '0'];
+        if ((*trie)->children[states[i] - (char )'0'] == NULL) return 1;
+        //printf("partial energy: %zu at %u\n", *(*trie)->energy, trie);
+        trie = &(*trie)->children[states[i] - (char)'0'];
     }
 
     // remove required state and all of its kin
-    removeNode(iterator);
-    free(iterator);
+    removeNode(trie);
+
     return 1;
 }
 
