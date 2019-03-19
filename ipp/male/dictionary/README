@@ -1,0 +1,6 @@
+Komentarze odnośnie rozwiązania:
+  * przy zmianie celu kompilacji (z make debug na make all i odwrotnie) należy
+    wywołać make clean - w przeciwnym wypadku zmiana nie zajdzie w całości.
+  * Liczba wierzchołków w drzewie nie zawsze zgadza się z referencyjną, ponieważ nigdy
+    nie usuwam roota - korzenia drzewa. Aby dostać poprawne wyniki, maskuję to w funkcji
+    trie.c/print_nodes_count.
