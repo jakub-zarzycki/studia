@@ -20,6 +20,7 @@ typedef struct Energy_node {
     size_t levels;
     struct Energy_node *lower;
     uint64_t energy;
+    uint64_t pointers;
 
 } Energy_node;
 
@@ -38,7 +39,7 @@ char equal(const char *history1, const char *history2) {
 
     Node *node1 = NULL;
     Node *node2 = NULL;
-    size_t m, n;
+    size_t m = 0, n = 0;
 
     m = strlen(history1);
     n = strlen(history2);
@@ -47,7 +48,7 @@ char equal(const char *history1, const char *history2) {
     node1 = root;
     for (size_t i = 0; i < m; i++){
 
-        if (node1->children[history1[i] - (char)'0'] == NULL ) { printf("returning1\n"); return 0;}
+        if (node1->children[history1[i] - (char)'0'] == NULL ) return 0;
 
         node1 = node1->children[history1[i] - (char)'0'];
     }
@@ -56,18 +57,21 @@ char equal(const char *history1, const char *history2) {
     node2 = root;
     for (size_t j = 0; j < n; j++){
 
-        if (node2->children[history2[j] - (char)'0'] == NULL ) { printf("returning2\n"); return 0;}
+        if (node2->children[history2[j] - (char)'0'] == NULL ) return 0;
 
         node2 = node2->children[history2[j] - (char)'0'];
     }
 
     //sprawdzamy null pointery
+    if (node1->energy == NULL && node2->energy == NULL) return 0;
+
     if (node1->energy == NULL) {
 
         if (!(node1->energy = malloc(sizeof(Energy_node)))) return 0;
         node1->energy->energy = 0;
         node1->energy->lower = NULL;
         node1->energy->levels = 0;
+        node1->energy->pointers = 1;
     }
 
     if (node2->energy == NULL) {
@@ -76,13 +80,16 @@ char equal(const char *history1, const char *history2) {
         node2->energy->energy = 0;
         node2->energy->lower = NULL;
         node2->energy->levels = 0;
+        node2->energy->pointers = 1;
     }
 
-    //energy_iteretor1 jest głębszy
-    Energy_node *energy_iterator1 = node1->energy;
-    Energy_node *energy_iterator2 = node2->energy;
+    Energy_node *energy_iterator1 = NULL;
+    energy_iterator1 = node1->energy;
 
-    while (energy_iterator1->levels > 0) {
+    Energy_node *energy_iterator2 = NULL;
+    energy_iterator2 = node2->energy;
+
+    while (energy_iterator1->lower != NULL) {
 
         energy_iterator1->levels++;
         energy_iterator1 = energy_iterator1->lower;
@@ -90,7 +97,9 @@ char equal(const char *history1, const char *history2) {
 
     energy_iterator1->levels++;
 
-    while (energy_iterator2->levels > 0) {
+    while (energy_iterator2->lower != NULL) {
+
+        if (energy_iterator1 == energy_iterator2) return 1;
 
         energy_iterator2->levels++;
         energy_iterator2 = energy_iterator2->lower;
@@ -121,10 +130,12 @@ char equal(const char *history1, const char *history2) {
     new_energy->energy = energy;
     new_energy->lower = NULL;
     new_energy->levels = 0;
+    new_energy->pointers = 2;
 
     energy_iterator1->lower = new_energy;
     energy_iterator2->lower = new_energy;
 
+    printf("OK\n");
     return 1;
 }
 
@@ -147,8 +158,9 @@ char get_energy(const char *states, uint64_t *energy) {
 
     if (energy_iterator == NULL) return 0;
 
-    while (energy_iterator->levels > 0) energy_iterator = energy_iterator->lower;
+    while (energy_iterator->lower != NULL) energy_iterator = energy_iterator->lower;
 
+    if (energy_iterator == NULL || energy_iterator->energy == 0) return  0;
     *energy = energy_iterator->energy;
 
     return 1;
@@ -175,9 +187,11 @@ char set_energy(const char *states, uint64_t energy) {
     new_energy->energy = energy;
     new_energy->lower = NULL;
     new_energy->levels = 0;
+    new_energy->pointers = 1;
 
     iterator->energy = new_energy;
 
+    printf("OK\n");
     return 1;
 }
 
@@ -190,7 +204,7 @@ char insert(const char *states) {
 
     for (size_t i = 0; i < n; i++) {
 
-        //create new node if non existant
+        //create new node if non existent
         if (iterator->children[states[i] - (char)'0'] == NULL) {
 
             Node *new_node;
@@ -208,7 +222,22 @@ char insert(const char *states) {
         iterator = iterator->children[states[i] - (char)'0'];
     }
 
+    printf("OK\n");
     return 1;
+}
+
+void delete_energy(Energy_node **iterator) {
+
+    if (*iterator == NULL) return;
+
+    (*iterator)->pointers--;
+
+    if ((*iterator)->pointers == 0) {
+
+        delete_energy(&(*iterator)->lower);
+        free(*iterator);
+        *iterator = NULL;
+    }
 }
 
 void delete_node(Node **iterator) {
@@ -218,6 +247,7 @@ void delete_node(Node **iterator) {
     for (char i = 0; i < 4; i++)
         delete_node(&(*iterator)->children[i]);
 
+    delete_energy(&(*iterator)->energy);
     free(*iterator);
     *iterator = NULL;
 }
@@ -238,6 +268,7 @@ char delete(const char *states) {
 
     delete_node(iterator);
 
+    printf("OK\n");
     return 1;
 }
 

@@ -16,6 +16,49 @@ static const char *EQUAL = "EQUAL";
 static const char *REMOVE = "REMOVE";
 static const char *VALID = "VALID";
 
+uint64_t atouin64(const char *s) {
+
+    uint64_t ret = 0;
+    uint64_t old_ret = 0;
+
+    size_t n = strlen(s);
+
+    for (size_t i = 0; i < n; i++) {
+
+        old_ret = ret;
+        ret *= 10;
+
+        if (ret < old_ret || ret % 10) return 0;
+        else ret += s[i] - '0';
+    }
+
+    return ret;
+}
+
+inline static int correct_line(const char *s) {
+
+    char space = 0;
+    size_t n = 0;
+    n = strlen(s);
+
+    for(size_t i = 0; i < n - 1; i++ ) {
+
+        if (s[i] == ' ' ) {
+
+            if (space) return 0;
+
+            space = 1;
+            continue;
+        }
+
+        space = 0;
+        if (!isupper(s[i]) && !isdigit(s[i]) && s[i] != '\n') return 0;
+    }
+
+    if (space) return 0;
+    return 1;
+}
+
 //funkcja sprawdza, czy słowo jest poprawną (w sensie treści zadania) energią
 inline static int correct_energy(const char *s) {
 
@@ -54,10 +97,11 @@ void parse(
     size_t buf_size = 0;
 
     //wczytywanie jednej linii
-    size_t line_length = (size_t) getline(&line, &buf_size, stdin);
+    size_t line_length = 0;
+    line_length = (size_t) getline(&line, &buf_size, stdin);
 
-    //jeżeli plik się zakończył, kończę bez wypisywania ignored
-    if (line_length == -1) {
+    //sprawdzam czy to komentarz
+    if (line[0] == '#' || line_length < 2) {
 
         free(line);
         return;
@@ -66,10 +110,7 @@ void parse(
     //sprawdzam, czy linia zawiera jedynie dozwolone, drukowalne znaki: spacje,
     //końce linii, wielkie litery i cyfry
     for (size_t i = 0; i < line_length; i++)
-        INPUT_ASSERT(line[i] == ' '
-                     || line[i] == '\n'
-                     || (isupper(line[i]))
-                     || (isdigit(line[i])))
+        INPUT_ASSERT(correct_line(line))
 
     //dzielę wczytaną linię na słowa oddzielone białymi znakami
     int words_number = sscanf(line, "%s%s%s%s",
@@ -105,7 +146,7 @@ void parse(
 
             INPUT_ASSERT(correct_energy(splited[2]))
 
-            set_energy(splited[1], atoll(splited[2]));
+            if (!(set_energy(splited[1], atouin64(splited[2])))) printf("ERROR\n");
 
         } else {
 
@@ -124,16 +165,14 @@ void parse(
 
         INPUT_ASSERT(words_number == 2)
 
-        if (valid(splited[1])) printf("OK\n");
+        if (valid(splited[1])) printf("YES\n");
         else printf("NO\n");
 
         //TODO: the hardest one
     } else if (strcmp(splited[0], EQUAL) == 0) {
 
         INPUT_ASSERT(words_number == 3)
-        equal(splited[1], splited[2]);
-
-    } else if (splited[0][0] == '#') {
+        if (!(equal(splited[1], splited[2]))) printf("ERROR\n");
 
     } else {
 
